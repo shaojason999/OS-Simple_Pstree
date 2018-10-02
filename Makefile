@@ -18,4 +18,3 @@ $(BINARY): $(SOURCE) $(patsubst %.c, %.h, $(SOURCE))
 .PHONY: clean
 clean:
 	rm -f *.o $(BINARY)
-	make clean -C lib
