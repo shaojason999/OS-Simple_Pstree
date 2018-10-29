@@ -1,5 +1,5 @@
 #include <linux/module.h>
-#include <linux/kernel.h>
+//#include <linux/kernel.h>
 #include <net/sock.h>
 #include <net/netlink.h>
 #include "ksimple_pstree.h"
@@ -24,10 +24,10 @@ static int __init netlink_init(void)
         .input=recv_msg,
     };
 
-    printk(KERN_ALERT "2 kernel say helloi\n");
+    printk(KERN_ALERT "2 kernel say hello");
     nl_sk=netlink_kernel_create(&init_net, user_kernel_link, &cfg);
     if(!nl_sk) {
-        printk(KERN_ALERT "Error creating socket\n");
+        printk(KERN_ALERT "Error creating socket");
         return -10;
     }
 
@@ -37,8 +37,7 @@ static int __init netlink_init(void)
 static void __exit netlink_exit(void)
 {
     printk(KERN_ALERT "3 goodbye");
+    netlink_kernel_release(nl_sk);
 }
 module_init(netlink_init);
 module_exit(netlink_exit);
-
-

@@ -17,13 +17,13 @@ int main()
     /*set the src_addr*/
     memset(&src_addr, 0, sizeof(src_addr));	/*<string.h>*/
     src_addr.nl_family=AF_NETLINK;
-    src_addr.nl_pad=0;
+//    src_addr.nl_pad=0;
     src_addr.nl_pid=getpid();	/*getpid() included in <unistd.h>*/
-    src_addr.nl_groups=0;
+//    src_addr.nl_groups=0;
     /*set the des_addr*/
     memset(&des_addr, 0, sizeof(des_addr));
     des_addr.nl_family=AF_NETLINK;
-    des_addr.nl_pad=0;
+//    des_addr.nl_pad=0;
     des_addr.nl_pid=0;	/*pid of kernel is 0*/
     des_addr.nl_groups=0;
     printf("123\n");
@@ -41,9 +41,10 @@ int main()
     nlh_d->nlmsg_len=NLMSG_SPACE(MAX_PAYLOAD);
     nlh_d->nlmsg_pid=getpid();
     nlh_d->nlmsg_flags=0;
+
     strcpy(NLMSG_DATA(nlh_d), "hello!");
-    printf("234\n");
-    iov.iov_base=(void*)(nlh_d);	/*point to the message you want to send*/
+
+    iov.iov_base=(void*)nlh_d;	/*point to the message you want to send*/
     iov.iov_len=nlh_d->nlmsg_len;/**/
 
     /*the actual message(package) you send to the kernel*/
@@ -56,6 +57,8 @@ int main()
     printf("start to send to kernel\n");
     sendmsg(sock_fd, &msg, 0);
     printf("waiting from kernel\n");
+
+    memset(nlh_d, 0, NLMSG_SPACE(MAX_PAYLOAD));
 
     close(sock_fd);
 
