@@ -57,6 +57,8 @@ int main()
     sendmsg(sock_fd, &msg, 0);
     printf("waiting from kernel\n");
 
+    close(sock_fd);
+
     return 0;
 
 
