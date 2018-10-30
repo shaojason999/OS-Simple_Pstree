@@ -90,7 +90,10 @@ int main(int argc, char* argv[])
     memset(nlh_d, 0, NLMSG_SPACE(MAX_PAYLOAD));
 
     recvmsg(sock_fd, &msg, 0);
-    printf("Received data from kernel: %s\n", (char*)NLMSG_DATA(nlh_d));
+    if(strcmp(((char*)NLMSG_DATA(nlh_d)),"-1")!=0)	/*-1 means pid does not exist*/
+        printf("Received data from kernel: %s\n", (char*)NLMSG_DATA(nlh_d));
+    else
+        printf("pid does not exist\n");
 
     close(sock_fd);
 

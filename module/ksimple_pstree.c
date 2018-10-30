@@ -1,9 +1,9 @@
 #include <linux/module.h>
-//#include <linux/kernel.h>
 #include <net/sock.h>
 #include <net/netlink.h>
 #include "ksimple_pstree.h"
 #include <linux/skbuff.h>
+#include <linux/pid.h>
 
 #define MAX_PAYLOAD 1024
 struct sock *nl_sk=NULL;
@@ -12,17 +12,36 @@ static void recv_msg(struct sk_buff *skb)
 {
     struct nlmsghdr *nlh_recv,*nlh_send;
     struct sk_buff *skb_out;
-    int pid, res, msg_size;
+    int back_pid, res, msg_size;
+    int pid;
+
     char *msg;
+    struct pid *f_g_pid;
+    struct task_struct *task;
 
     /*deal with the data received*/
     nlh_recv=(struct nlmsghdr *)skb->data;
     printk(KERN_INFO "%s: received message from user: %s\n",__FUNCTION__, (char*)NLMSG_DATA(nlh_recv));
-    pid=nlh_recv->nlmsg_pid;	/*pid from user process*/
+    back_pid=nlh_recv->nlmsg_pid;	/*pid from user process*/
 
+
+    msg=(char*)NLMSG_DATA(nlh_recv);
+    sscanf(&msg[2],"%d",&pid);
+    printk("%d\n",pid);
+    f_g_pid=find_get_pid(pid);
+    if(f_g_pid==NULL) {	/*if pid does not exist, send back "-1"*/
+        msg="-1";
+    } else {
+        task=pid_task(f_g_pid,PIDTYPE_PID);
+
+
+
+
+
+    }
 
     /*prepare to send the data*/
-    msg="say hello from kenrel";
+//    msg="say hello from kenrel";
 
     msg_size=strlen(msg);
     skb_out=nlmsg_new(msg_size,0);
@@ -37,9 +56,10 @@ static void recv_msg(struct sk_buff *skb)
     NETLINK_CB(skb_out).dst_group=0;
 
     /*send the data*/
-    res=nlmsg_unicast(nl_sk, skb_out, pid);
+    res=nlmsg_unicast(nl_sk, skb_out, back_pid);
     if(res<0)
         printk(KERN_INFO "Error while sending back to user\n");
+    return;
 
 }
 
