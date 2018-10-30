@@ -13,7 +13,7 @@ struct msghdr msg;	/*have to be a global variable*/
 struct iovec iov;
 int sock_fd;
 
-int main()
+int main(int argc, char* argv[])
 {
     /*set the src_addr*/
     memset(&src_addr, 0, sizeof(src_addr));	/*<string.h>*/
@@ -41,7 +41,38 @@ int main()
     nlh_d->nlmsg_len=NLMSG_SPACE(MAX_PAYLOAD);
     nlh_d->nlmsg_pid=getpid();
     nlh_d->nlmsg_flags=0;
-    strcpy(NLMSG_DATA(nlh_d), "hello!");
+
+    char message[50];
+    memset(message, 0, sizeof(message));
+    int option;
+    if(argc==1)
+        sprintf(message,"c 1");
+    else if((option=getopt(argc, argv, "c::s::p::"))!=-1) {
+        switch(option) {
+        case 'c':
+            if(optarg==NULL)
+                sprintf(message,"c 1");
+            else
+                sprintf(message,"c %s",optarg);
+            break;
+        case 's':
+            if(optarg==NULL)
+                sprintf(message,"s %d",getpid());
+            else
+                sprintf(message,"s %s",optarg);
+            break;
+        case 'p':
+            if(optarg==NULL)
+                sprintf(message,"p %d",getpid());
+            else
+                sprintf(message,"p %s",optarg);
+            break;
+        case '?':
+            printf("unknown input\n");
+            return -1;
+        }
+    }
+    strncpy(NLMSG_DATA(nlh_d), message, strlen(message));
 
     iov.iov_base=(void*)nlh_d;	/*point to the message you want to send*/
     iov.iov_len=nlh_d->nlmsg_len;/**/
