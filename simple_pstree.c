@@ -83,17 +83,18 @@ int main(int argc, char* argv[])
     msg.msg_iov=&iov;
     msg.msg_iovlen=1;
 
-    printf("start to send to kernel\n");
+//    printf("start to send to kernel\n");
     sendmsg(sock_fd, &msg, 0);
-    printf("waiting from kernel\n");
+//    printf("waiting from kernel\n");
 
     memset(nlh_d, 0, NLMSG_SPACE(MAX_PAYLOAD));
 
     recvmsg(sock_fd, &msg, 0);
-    if(strcmp(((char*)NLMSG_DATA(nlh_d)),"-1")!=0)	/*-1 means pid does not exist*/
-        printf("Received data from kernel: %s\n", (char*)NLMSG_DATA(nlh_d));
-    else
-        printf("pid does not exist\n");
+//    if(strcmp(((char*)NLMSG_DATA(nlh_d)),"-1")!=0)	/*-1 means pid does not exist*/
+//        printf("Received data from kernel:\n");
+    printf("%s", (char*)NLMSG_DATA(nlh_d));
+//    else
+//        printf("pid does not exist\n");
 
     close(sock_fd);
 
