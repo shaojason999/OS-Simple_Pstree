@@ -7,7 +7,7 @@
 
 #define MAX_PAYLOAD 1024
 struct sock *nl_sk=NULL;
-char msg[10000], buff[100];
+char msg[100000], buff[100];
 int depth;
 
 void parent(struct task_struct *task)
@@ -22,6 +22,23 @@ void parent(struct task_struct *task)
     sprintf(buff,"%s(%d)\n", task->comm, task->pid);
     strcat(msg,buff);
     ++depth;
+}
+void child(struct task_struct *task)
+{
+    struct list_head *list=NULL;
+    struct task_struct *temp_task;
+    int i;
+    for(i=0; i<depth; ++i)
+        strcat(msg,"    ");
+    sprintf(buff,"%s(%d)\n", task->comm, task->pid);
+    printk("%s(%d)\n", task->comm, task->pid);
+    strcat(msg,buff);
+    list_for_each(list, &(task->children)) {
+        temp_task=list_entry(list, struct task_struct, sibling);
+        ++depth;
+        child(temp_task);
+        --depth;
+    }
 }
 static void recv_msg(struct sk_buff *skb)
 {
@@ -49,7 +66,7 @@ static void recv_msg(struct sk_buff *skb)
     printk("pid: %d\n",pid);
     f_g_pid=find_get_pid(pid);
     if(f_g_pid==NULL) {	/*if pid does not exist, send back "-1"*/
-        sprintf(msg,"-1");
+        memset(msg, 0, sizeof(msg));
     } else {
         task=pid_task(f_g_pid,PIDTYPE_PID);
         if(msg_recv[0]=='s') {
@@ -64,7 +81,10 @@ static void recv_msg(struct sk_buff *skb)
             }
         } else if(msg_recv[0]=='p') {
             parent(task);
+        } else if(msg_recv[0]=='c') {
+            child(task);
         }
+
     }
 
     /*prepare to send the data*/

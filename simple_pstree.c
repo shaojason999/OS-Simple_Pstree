@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include "simple_pstree.h"
 
-#define MAX_PAYLOAD 1024
+#define MAX_PAYLOAD 100000
 struct sockaddr_nl src_addr, des_addr;
 struct nlmsghdr *nlh_d;	/*header+data*/
 struct msghdr msg;	/*have to be a global variable*/
