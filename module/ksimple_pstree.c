@@ -7,7 +7,20 @@
 
 #define MAX_PAYLOAD 1024
 struct sock *nl_sk=NULL;
+char *msg;
+int depth;
 
+void parent(struct task_struct *task)
+{
+    int i;
+    struct task_struct *temp_task;
+    if((temp_task=task->parent)!=NULL)
+        parent(temp_task);
+    for(i=0; i<depth; ++i)
+        strcat(msg,"    ");
+    sprintf(msg,"%s(%d)\n", task->comm, task->pid);
+    ++depth;
+}
 static void recv_msg(struct sk_buff *skb)
 {
     struct nlmsghdr *nlh_recv,*nlh_send;
@@ -15,33 +28,39 @@ static void recv_msg(struct sk_buff *skb)
     int back_pid, res, msg_size;
     int pid;
 
-    char *msg;
+    char *msg_recv;
     struct pid *f_g_pid;
-    struct task_struct *task;
+    struct task_struct *task, *temp_task;
+    struct list_head *list;
 
     /*deal with the data received*/
     nlh_recv=(struct nlmsghdr *)skb->data;
     printk(KERN_INFO "%s: received message from user: %s\n",__FUNCTION__, (char*)NLMSG_DATA(nlh_recv));
     back_pid=nlh_recv->nlmsg_pid;	/*pid from user process*/
 
-
-    msg=(char*)NLMSG_DATA(nlh_recv);
-    sscanf(&msg[2],"%d",&pid);
-    printk("%d\n",pid);
+    msg=NULL;
+    list=NULL;
+    depth=0;
+    msg_recv=(char*)NLMSG_DATA(nlh_recv);
+    sscanf(&msg_recv[2],"%d",&pid);
+    printk("pid: %d\n",pid);
     f_g_pid=find_get_pid(pid);
     if(f_g_pid==NULL) {	/*if pid does not exist, send back "-1"*/
         msg="-1";
     } else {
         task=pid_task(f_g_pid,PIDTYPE_PID);
-
-
-
-
-
+        if(msg_recv[0]=='s') {
+            list_for_each(list,&(task->sibling)) {
+                temp_task=list_entry(list, struct task_struct, sibling);
+                printk("%s(%d)\n", temp_task->comm, temp_task->pid);
+            }
+        } else if(msg_recv[0]=='p') {
+            parent(task);
+        }
     }
 
     /*prepare to send the data*/
-//    msg="say hello from kenrel";
+    msg="say hello from kenrel";
 
     msg_size=strlen(msg);
     skb_out=nlmsg_new(msg_size,0);
