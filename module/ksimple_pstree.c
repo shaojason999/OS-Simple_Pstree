@@ -7,18 +7,20 @@
 
 #define MAX_PAYLOAD 1024
 struct sock *nl_sk=NULL;
-char *msg;
+char msg[10000], buff[100];
 int depth;
 
 void parent(struct task_struct *task)
 {
     int i;
     struct task_struct *temp_task;
-    if((temp_task=task->parent)!=NULL)
+    if(((temp_task=task->parent)->pid)!=0) {
         parent(temp_task);
-    for(i=0; i<depth; ++i)
-        strcat(msg,"    ");
-    sprintf(msg,"%s(%d)\n", task->comm, task->pid);
+        for(i=0; i<depth; ++i)
+            strcat(msg,"    ");
+    }
+    sprintf(buff,"%s(%d)\n", task->comm, task->pid);
+    strcat(msg,buff);
     ++depth;
 }
 static void recv_msg(struct sk_buff *skb)
@@ -26,7 +28,7 @@ static void recv_msg(struct sk_buff *skb)
     struct nlmsghdr *nlh_recv,*nlh_send;
     struct sk_buff *skb_out;
     int back_pid, res, msg_size;
-    int pid;
+    int pid, ori_pid;
 
     char *msg_recv;
     struct pid *f_g_pid;
@@ -38,7 +40,8 @@ static void recv_msg(struct sk_buff *skb)
     printk(KERN_INFO "%s: received message from user: %s\n",__FUNCTION__, (char*)NLMSG_DATA(nlh_recv));
     back_pid=nlh_recv->nlmsg_pid;	/*pid from user process*/
 
-    msg=NULL;
+    memset(msg, 0, sizeof(msg));
+    memset(buff, 0, sizeof(buff));
     list=NULL;
     depth=0;
     msg_recv=(char*)NLMSG_DATA(nlh_recv);
@@ -46,13 +49,18 @@ static void recv_msg(struct sk_buff *skb)
     printk("pid: %d\n",pid);
     f_g_pid=find_get_pid(pid);
     if(f_g_pid==NULL) {	/*if pid does not exist, send back "-1"*/
-        msg="-1";
+        sprintf(msg,"-1");
     } else {
         task=pid_task(f_g_pid,PIDTYPE_PID);
         if(msg_recv[0]=='s') {
-            list_for_each(list,&(task->sibling)) {
+            ori_pid=task->pid;
+            task=task->parent;
+            list_for_each(list,&(task->children)) {
                 temp_task=list_entry(list, struct task_struct, sibling);
-                printk("%s(%d)\n", temp_task->comm, temp_task->pid);
+                if(temp_task->pid != ori_pid) {
+                    sprintf(buff,"%s(%d)\n",temp_task->comm, temp_task->pid);
+                    strcat(msg,buff);
+                }
             }
         } else if(msg_recv[0]=='p') {
             parent(task);
@@ -60,7 +68,7 @@ static void recv_msg(struct sk_buff *skb)
     }
 
     /*prepare to send the data*/
-    msg="say hello from kenrel";
+//    msg="say hello from kenrel";
 
     msg_size=strlen(msg);
     skb_out=nlmsg_new(msg_size,0);
