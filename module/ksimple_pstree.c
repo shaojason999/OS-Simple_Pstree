@@ -6,9 +6,36 @@
 #include <linux/pid.h>
 
 #define MAX_PAYLOAD 1024
+void child(struct task_struct *task);
 struct sock *nl_sk=NULL;
 char msg[100000], buff[100];
 int depth;
+int visited[10000];
+
+void thread_children(struct task_struct *task, int ori_pid)
+{
+    struct list_head *list, *list_list;
+    struct task_struct *temp_task, *temp_temp_task;
+
+    visited[task->pid]=1;
+    list=NULL;
+    list_list=NULL;
+    list_for_each(list, &(task->thread_group)) {
+        temp_task=list_entry(list, struct task_struct, thread_group);
+        if(visited[temp_task->pid]==0) {
+            printk("%d %s(%d)\n", ori_pid, temp_task->comm, temp_task->pid);
+            list_for_each(list_list, &(temp_task->children)) {
+                temp_temp_task=list_entry(list_list, struct task_struct, sibling);
+                ++depth;
+                child(temp_temp_task);
+                --depth;
+            }
+            thread_children(temp_task, temp_task->pid);
+        }
+
+    }
+}
+
 
 void parent(struct task_struct *task)
 {
@@ -28,17 +55,28 @@ void child(struct task_struct *task)
     struct list_head *list=NULL;
     struct task_struct *temp_task;
     int i;
+//struct list_head *lll;
+//struct task_struct *ttt;
     for(i=0; i<depth; ++i)
         strcat(msg,"    ");
     sprintf(buff,"%s(%d)\n", task->comm, task->pid);
-    printk("%s(%d)\n", task->comm, task->pid);
+//    printk("%s(%d)\n", task->comm, task->pid);
     strcat(msg,buff);
+//if(task->pid != task->group_leader->pid)
+//printk("%d %s(%d)\n",task->pid, task->group_leader->comm, task->group_leader->pid);
+    /*list_for_each(lll,&(task->thread_group)){
+    	ttt=list_entry(lll, struct task_struct, thread_group);
+    	if(list_entry(&(ttt->children),struct task_struct, sibling)->pid!=0)
+    	printk("%d %s(%d)\n",task->pid, ttt->comm, ttt->pid);
+    }*/
+
     list_for_each(list, &(task->children)) {
         temp_task=list_entry(list, struct task_struct, sibling);
         ++depth;
         child(temp_task);
         --depth;
     }
+    thread_children(task, task->pid);
 }
 static void recv_msg(struct sk_buff *skb)
 {
@@ -59,6 +97,7 @@ static void recv_msg(struct sk_buff *skb)
 
     memset(msg, 0, sizeof(msg));
     memset(buff, 0, sizeof(buff));
+    memset(visited, 0, sizeof(visited));
     list=NULL;
     depth=0;
     msg_recv=(char*)NLMSG_DATA(nlh_recv);
