@@ -12,7 +12,7 @@ char msg[100000], buff[100];
 int depth;
 int visited[10000];
 
-void thread_children(struct task_struct *task, int ori_pid)
+void thread(struct task_struct *task, int flag)
 {
     struct list_head *list, *list_list;
     struct task_struct *temp_task, *temp_temp_task;
@@ -23,16 +23,20 @@ void thread_children(struct task_struct *task, int ori_pid)
     list_for_each(list, &(task->thread_group)) {
         temp_task=list_entry(list, struct task_struct, thread_group);
         if(visited[temp_task->pid]==0) {
-            printk("%d %s(%d)\n", ori_pid, temp_task->comm, temp_task->pid);
+//            printk("%s(%d)\n", temp_task->comm, temp_task->pid);
             list_for_each(list_list, &(temp_task->children)) {
                 temp_temp_task=list_entry(list_list, struct task_struct, sibling);
-                ++depth;
-                child(temp_temp_task);
-                --depth;
+                if(flag==0) {	/*0 means used for child*/
+                    ++depth;
+                    child(temp_temp_task);
+                    --depth;
+                } else if(flag==1) {	/*1 means used for sibling*/
+                    sprintf(buff,"%s(%d)\n", temp_temp_task->comm, temp_temp_task->pid);
+                    strcat(msg,buff);
+                }
             }
-            thread_children(temp_task, temp_task->pid);
+            thread(temp_task, flag);
         }
-
     }
 }
 
@@ -55,20 +59,10 @@ void child(struct task_struct *task)
     struct list_head *list=NULL;
     struct task_struct *temp_task;
     int i;
-//struct list_head *lll;
-//struct task_struct *ttt;
     for(i=0; i<depth; ++i)
         strcat(msg,"    ");
     sprintf(buff,"%s(%d)\n", task->comm, task->pid);
-//    printk("%s(%d)\n", task->comm, task->pid);
     strcat(msg,buff);
-//if(task->pid != task->group_leader->pid)
-//printk("%d %s(%d)\n",task->pid, task->group_leader->comm, task->group_leader->pid);
-    /*list_for_each(lll,&(task->thread_group)){
-    	ttt=list_entry(lll, struct task_struct, thread_group);
-    	if(list_entry(&(ttt->children),struct task_struct, sibling)->pid!=0)
-    	printk("%d %s(%d)\n",task->pid, ttt->comm, ttt->pid);
-    }*/
 
     list_for_each(list, &(task->children)) {
         temp_task=list_entry(list, struct task_struct, sibling);
@@ -76,7 +70,7 @@ void child(struct task_struct *task)
         child(temp_task);
         --depth;
     }
-    thread_children(task, task->pid);
+    thread(task, 0);
 }
 static void recv_msg(struct sk_buff *skb)
 {
@@ -102,7 +96,7 @@ static void recv_msg(struct sk_buff *skb)
     depth=0;
     msg_recv=(char*)NLMSG_DATA(nlh_recv);
     sscanf(&msg_recv[2],"%d",&pid);
-    printk("pid: %d\n",pid);
+//    printk("pid: %d\n",pid);
     f_g_pid=find_get_pid(pid);
     if(f_g_pid==NULL) {	/*if pid does not exist, send back "-1"*/
         memset(msg, 0, sizeof(msg));
@@ -118,6 +112,7 @@ static void recv_msg(struct sk_buff *skb)
                     strcat(msg,buff);
                 }
             }
+            thread(task, 1);
         } else if(msg_recv[0]=='p') {
             parent(task);
         } else if(msg_recv[0]=='c') {
