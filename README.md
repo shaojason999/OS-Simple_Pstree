@@ -20,9 +20,9 @@
   git push -u origin master  
   
 ## 作業完成:  
-  (1)基本要求  
-  (2)bonus  
-    * 透過thread_group去尋找thread  
+* 基本要求  
+* bonus  
+    a.透過thread_group去尋找thread  
     b.當中可以完成thread的thread的thread...的children或sibling尋找  
     c.-s sibling的尋找方式為先找parent，再從parent的children還有parent的thread的children去找  
     d.-c children的尋找方式為先找task的children，再找task的thread(多層thread)的children  
