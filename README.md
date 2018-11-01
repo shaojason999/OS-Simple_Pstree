@@ -28,3 +28,5 @@
     d.-c children的尋找方式為先找task的children，再找task的thread(多層thread)的children  
     e.-p parent的尋找不需要處理到thread的部分  
     
+#其他注意事項
+-s 時不會顯示自己，符合助教範例
