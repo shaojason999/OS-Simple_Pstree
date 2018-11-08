@@ -19,6 +19,10 @@
   git commit -m "Comments here"  
   git push -u origin master  
   
+## command
+  ./simple_pstree '-x''pid'
+  其中-x為-s, -c, -p，分別為sibling, children, parent
+  pid為要查詢之process id
 ## 作業完成:  
 * 基本要求  
 * bonus  
